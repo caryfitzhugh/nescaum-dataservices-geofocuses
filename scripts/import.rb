@@ -2,41 +2,54 @@
 require 'net/http'
 require 'json'
 require 'colorize'
+require 'cgi'
 require 'pp'
 
 def get_geojson(type, uid)
-  json = JSON.parse(Net::HTTP.get('frontierspatial.com', '/JanuarySprint/mapper/v1/geometries.php?geojson=true&uid=#{uid}&type=%27#{type}%27'))
-  pp json
-  json
+  path = "/JanuarySprint/mapper/v1/geometries.php?geojson=true&uid=%27#{CGI::escape(uid)}%27&type=%27#{CGI::escape(type)}%27"
+  puts "Request: " + path
+  JSON.parse(Net::HTTP.get('frontierspatial.com', path))['features'][0]
 end
-def write_geojson(type, name, uid)
+
+def write_geojson(type, name, uid, props_type)
+  puts "Writing " + name.green
   File.write("./#{type}/#{uid}.geojson", JSON.generate({
+    type: type,
     name: name,
     uid: uid,
-    geom: get_geojson(type, uid)
+    geom: get_geojson(props_type, uid)
   }))
 end
 
 puts "Loading FS information..."
-geojson_str = Net::HTTP.get('frontierspatial.com', '/JanuarySprint/mapper/v1/geometries.php?geojson=true')
+geojson_str = Net::HTTP.get('frontierspatial.com', '/JanuarySprint/mapper/v1/geometries.php')
 puts "Loaded FS information".green
 geojson = JSON.parse(geojson_str)
+errors = []
 geojson['features'].each do |feature|
   props = feature['properties']
   case props['type']
   when 'City'
-    write_geojson('municipality', "#{props['name']}, #{props['state']}", props['uid'])
+    write_geojson('municipality', "#{props['name']}, #{props['state']}", props['uid'], props['type'])
   when 'Village'
-    write_geojson('municipality', "Villiage of #{props['name']}, #{props['state']}", props['uid'])
+    write_geojson('municipality', "Villiage of #{props['name']}, #{props['state']}", props['uid'], props['type'])
   when 'Town'
-    write_geojson('municipality', "Town of #{props['name']}, #{props['state']}", props['uid'])
+    write_geojson('municipality', "Town of #{props['name']}, #{props['state']}", props['uid'], props['type'])
   when 'HUC8 watershed'
-    write_geojson('watershed', "#{props['name']} Watershed", props['uid'])
+    write_geojson('watershed', "#{props['name']} Watershed", props['uid'], props['type'])
   when 'County'
-    write_geojson('county', "#{props['name']} County, #{props['state']}", props['uid'])
+    write_geojson('county', "#{props['name']} County, #{props['state']}", props['uid'], props['type'])
+  when 'Subnational Region'
+    write_geojson('subnational_region', "#{props['name']} Region", props['uid'], props['type'])
+  when 'State'
+    write_geojson('state', "#{props['name']}", props['uid'], props['type'])
   else
-    pp props.red
+    errors.push(props)
   end
+end
+
+errors.each do |props|
+  pp JSON.generate(props).red
 end
 
 #
