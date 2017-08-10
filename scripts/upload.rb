@@ -8,9 +8,9 @@ require 'pp'
 require 'mechanize'
 require 'pry'
 
-host = 'http://localhost:4000' #'repository.staging.nescaum-ccsc-dataservices.com' #Ask.input "API Host"
-username = 'cfitzhugh'  #Ask.input "Username"
-password = 'password' #Ask.input("Password", password: true)
+host = Ask.input "API Host"
+username = Ask.input "Username"
+password = Ask.input("Password", password: true)
 
 def get_geofocus(host, uid, type)
   uri = URI.parse("#{host}/geofocuses/find?uid=#{uid}&type=#{type}")
