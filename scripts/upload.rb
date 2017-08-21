@@ -8,6 +8,7 @@ require 'pp'
 require 'mechanize'
 require 'pry'
 
+puts ARGV[0]
 host = Ask.input "API Host"
 username = Ask.input "Username"
 password = Ask.input("Password", password: true)
@@ -51,7 +52,7 @@ a.get("#{host}") do |page|
 
   cookie = a.cookie_jar.jar[URI.parse(host).hostname]['/']['rack.session']
 
-  Dir["**/*.geojson"].each do |geojson_file|
+  Dir[ARGV[0] || "**/*.geojson"].each do |geojson_file|
     data = JSON.parse(File.read(geojson_file))
     resp =  get_geofocus(host, data['uid'], data['type'])
     if resp['code'] == 404
