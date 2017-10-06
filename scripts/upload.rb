@@ -27,9 +27,12 @@ def create_geofocus(host,cookie, data)
         initheader = {'Content-Type' => 'application/json',
                       'Cookie' => cookie.to_s,
                       'Accept' => 'application/json'})
+  if (!data['geom'])
+    raise "ACK. No Geom", data
+  end
   req.body = JSON.generate({'geofocus' => {
     :name => data['name'],
-    :uid => data['uid'],
+    :uid => data['uid'] || data['name'],
     :type => data['type'],
     :geom => JSON.generate(data['geom'])
   }})
@@ -51,18 +54,21 @@ a.get("#{host}") do |page|
   end.submit
 
   cookie = a.cookie_jar.jar[URI.parse(host).hostname]['/']['rack.session']
-
+  ids = []
   Dir[ARGV[0] || "**/*.geojson"].each do |geojson_file|
     data = JSON.parse(File.read(geojson_file))
-    resp =  get_geofocus(host, data['uid'], data['type'])
+    resp =  get_geofocus(host, data['uid'] || data['name'], data['type'])
     if resp['code'] == 404
       # Create
      create_result = create_geofocus(host, cookie, data)
      puts "Created #{data['name']}".green
     else
+      ids.push(resp['id'])
       puts "Already exists".yellow# Update
     end
   end
+      require 'pp'
+      pp ids
 end
 #sign_in_page = Net::HTTP.get(host, '/sign_in')
 #puts sign_in_page
